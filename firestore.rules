@@ -1,0 +1,60 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Keep this in sync with ADMIN_EMAILS in index.html
+    function isAllowlistedAdmin() {
+      return request.auth != null &&
+        request.auth.token.email in ['businessfrozy@gmail.com'];
+    }
+
+    function isAdminDoc() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return isAllowlistedAdmin() || isAdminDoc();
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(studentId) {
+      return isSignedIn() && request.auth.uid == studentId;
+    }
+
+    // Admin-only collection of extra admin user docs
+    match /admins/{adminId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Students: doc id == auth uid for students with portal access.
+    // Admins can manage all student records; a student can read only their own doc.
+    match /students/{studentId} {
+      allow read: if isAdmin() || isOwner(studentId);
+      allow create: if isAdmin();
+      allow update: if isAdmin() || isOwner(studentId);
+      allow delete: if isAdmin();
+    }
+
+    match /rooms/{roomId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /fees/{feeId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.studentId == request.auth.uid);
+      allow write: if isAdmin();
+    }
+
+    match /complaints/{complaintId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.studentId == request.auth.uid);
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.studentId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+  }
+}

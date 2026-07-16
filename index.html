@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>𝔽𝕣𝕠𝕫𝕪 𝔸𝕩𝕚𝕤 — Hostel Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ---------- Water palette ---------- */
+    --bg-1:#d9eef0;
+    --bg-2:#b8dde1;
+    --bg-3:#e6f3ee;
+    --surface:#ffffff;
+    --surface-2:#e3f0ee;
+    --ink:#0b2b3a;
+    --ink-soft:#5a7a85;
+    --accent:#0fa3a8;
+    --accent-deep:#0a7a82;
+    --accent-soft:#d2f1ef;
+    --accent-2:#ff7a8a;        /* coral nod to reference */
+    --accent-2-soft:#ffe1e4;
+    --danger:#e2526a;
+    --danger-soft:#ffe1e4;
+    --line:rgba(11,43,58,0.09);
+    --radius:20px;
+
+    /* ---------- Glass bubble tokens ---------- */
+    --glass-bg:rgba(255,255,255,0.42);
+    --glass-bg-strong:rgba(255,255,255,0.72);
+    --glass-border:rgba(255,255,255,0.7);
+    --glass-inner:rgba(255,255,255,0.85);
+    --glass-shadow:
+      0 1px 0 rgba(255,255,255,0.9) inset,
+      0 -1px 0 rgba(15,163,168,0.08) inset,
+      0 20px 45px -22px rgba(10,70,90,0.35),
+      0 6px 14px -8px rgba(10,70,90,0.2);
+    --glass-blur:28px;
+
+    /* ---------- Bubble (pill) tokens ---------- */
+    --bubble-grad-pink:linear-gradient(180deg,#ffb9c4 0%,#ff7a8a 55%,#e85a6e 100%);
+    --bubble-grad-cream:linear-gradient(180deg,#fffaf0 0%,#f3e8d5 55%,#e5d3b7 100%);
+    --bubble-grad-aqua:linear-gradient(180deg,#bdebe9 0%,#78d1d0 55%,#3ea8ab 100%);
+    --bubble-highlight:radial-gradient(ellipse at 50% 22%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.35) 32%, rgba(255,255,255,0) 62%);
+
+    /* ---------- Easing ---------- */
+    --ease-smooth:cubic-bezier(.16,1,.3,1);
+    --ease-spring:cubic-bezier(.34,1.56,.64,1);
+    --ease-soft:cubic-bezier(.25,.46,.45,.94);
+    --ease-water:cubic-bezier(.45,.05,.25,1);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 700px at 10% -10%, rgba(255,183,196,0.35), transparent 60%),
+      radial-gradient(900px 700px at 110% 10%, rgba(189,235,233,0.55), transparent 60%),
+      radial-gradient(1100px 800px at 50% 120%, rgba(255,225,228,0.5), transparent 60%),
+      linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
+    color:var(--ink);
+    font-family:'Space Grotesk',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  /* ---------- Ambient water: caustics + rising bubbles ---------- */
+  .water-bg{
+    position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;
+  }
+  .water-bg::before,
+  .water-bg::after{
+    content:"";position:absolute;inset:-20%;
+    background:
+      radial-gradient(closest-side at 20% 30%, rgba(255,255,255,0.5), transparent 60%),
+      radial-gradient(closest-side at 80% 70%, rgba(189,235,233,0.55), transparent 60%),
+      radial-gradient(closest-side at 60% 20%, rgba(255,225,228,0.55), transparent 60%);
+    filter:blur(30px);
+    animation:drift 28s var(--ease-water) infinite alternate;
+    will-change:transform;
+  }
+  .water-bg::after{animation-duration:36s;animation-direction:alternate-reverse;opacity:.7;}
+  @keyframes drift{
+    0%{transform:translate(0,0) scale(1);}
+    50%{transform:translate(-4%,3%) scale(1.08);}
+    100%{transform:translate(3%,-2%) scale(.96);}
+  }
+
+  @media(prefers-reduced-motion:reduce){
+    .water-bg::before,.water-bg::after{animation:none;}
+  }
+
+  h1,h2,h3,.display{
+    font-family:'Fraunces',serif;font-weight:600;letter-spacing:-0.015em;
+    font-feature-settings:'liga' 1,'kern' 1;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+  p{line-height:1.6;}
+  a{color:inherit;}
+  ::selection{background:var(--accent);color:#fff;}
+
+  /* ---------- Axis mark (water droplet cross) ---------- */
+  .axis-mark{
+    width:34px;height:34px;border-radius:50%;
+    background:
+      var(--bubble-highlight),
+      linear-gradient(180deg, rgba(255,255,255,0.85), rgba(220,240,238,0.7));
+    border:1px solid rgba(255,255,255,0.8);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.9),
+      inset 0 -3px 8px rgba(10,70,90,0.08),
+      0 6px 14px -6px rgba(10,70,90,0.3);
+    position:relative;flex-shrink:0;
+    transition:transform .6s var(--ease-spring);
+    cursor:pointer;
+  }
+  .axis-mark::before,.axis-mark::after{
+    content:"";position:absolute;background:var(--accent-deep);border-radius:2px;
+  }
+  .axis-mark::before{width:14px;height:2px;top:50%;left:50%;transform:translate(-50%,-50%);}
+  .axis-mark::after{width:2px;height:14px;top:50%;left:50%;transform:translate(-50%,-50%);}
+  .axis-mark.spin{animation:spin 800ms var(--ease-spring);}
+  @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(90deg) scale(1.05);}}
+  .axis-mark:hover{filter:drop-shadow(0 0 10px rgba(15,163,168,.5));}
+
+  /* ---------- Login ---------- */
+  #login-screen{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    padding:24px;position:relative;z-index:1;
+  }
+  .login-card{
+    width:100%;max-width:400px;
+    background:var(--glass-bg-strong);
+    border:1px solid var(--glass-border);border-radius:28px;
+    padding:36px 32px 28px;
+    box-shadow:var(--glass-shadow);
+    -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(160%);
+    backdrop-filter:blur(var(--glass-blur)) saturate(160%);
+    position:relative;overflow:hidden;
+    animation:glassIn .9s var(--ease-spring);
+  }
+  .login-card::before{
+    content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+    background:radial-gradient(120% 60% at 50% -10%, rgba(255,255,255,0.9), transparent 60%);
+    mix-blend-mode:screen;
+  }
+  @keyframes glassIn{
+    from{opacity:0;transform:translateY(24px) scale(.96);filter:blur(8px);}
+    to{opacity:1;transform:translateY(0) scale(1);filter:blur(0);}
+  }
+  @keyframes fieldSwap{
+    0%{opacity:0;transform:translateY(-6px);}
+    100%{opacity:1;transform:translateY(0);}
+  }
+  #login-form.swap .field,
+  #login-form.swap .btn-primary{animation:fieldSwap .4s var(--ease-smooth);}
+  .role-tabs{
+    display:flex;gap:4px;background:rgba(255,255,255,.5);border:1px solid var(--glass-border);
+    border-radius:14px;padding:5px;margin-bottom:22px;position:relative;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(10,70,90,0.05);
+  }
+  .role-tab{
+    flex:1;text-align:center;padding:9px 10px;border-radius:10px;font-size:12.5px;font-weight:600;
+    letter-spacing:.02em;color:var(--ink-soft);cursor:pointer;position:relative;z-index:1;
+    transition:color .4s var(--ease-smooth);
+  }
+  .role-tab.active{color:#fff;}
+  .role-tab-indicator{
+    position:absolute;top:5px;left:5px;bottom:5px;width:calc(50% - 5px);
+    background:linear-gradient(180deg, #13b6bb, #0a7a82);
+    border-radius:10px;z-index:0;
+    transition:transform .55s var(--ease-spring);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.6),
+      inset 0 -2px 6px rgba(0,0,0,0.12),
+      0 8px 18px -6px rgba(10,70,90,0.4);
+  }
+  .role-tab-indicator.student{transform:translateX(100%);}
+  .login-brand{display:flex;align-items:center;gap:12px;margin-bottom:26px;position:relative;z-index:1;}
+  .login-brand .brandname{font-family:'Fraunces',serif;font-style:italic;font-weight:560;font-size:23px;letter-spacing:-0.01em;}
+  .login-brand .brandname sub{display:block;font-family:'JetBrains Mono',monospace;font-style:normal;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);margin-top:5px;}
+  .login-card h2.login-title{font-size:15px;font-weight:600;font-style:normal;margin:0 0 22px;color:var(--ink-soft);letter-spacing:0;font-family:'Space Grotesk',sans-serif;}
+  .field{margin-bottom:16px;position:relative;z-index:1;}
+  .field label{display:block;font-size:11.5px;font-weight:500;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:7px;font-family:'JetBrains Mono',monospace;}
+  .field input{
+    width:100%;padding:12px 14px;border:1px solid var(--glass-border);border-radius:14px;
+    background:rgba(255,255,255,.7);font-family:'Space Grotesk',sans-serif;font-size:14.5px;color:var(--ink);
+    outline:none;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(10,70,90,0.04);
+    transition:border-color .4s var(--ease-smooth),box-shadow .4s var(--ease-smooth),background .4s var(--ease-smooth),transform .3s var(--ease-spring);
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  }
+  .field input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(15,163,168,0.18), inset 0 1px 0 rgba(255,255,255,0.9);background:#fff;transform:translateY(-1px);}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:11px 18px;border-radius:14px;border:1px solid transparent;
+    font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;
+    cursor:pointer;position:relative;overflow:hidden;
+    transition:transform .4s var(--ease-spring),opacity .3s var(--ease-smooth),background .3s var(--ease-smooth),box-shadow .4s var(--ease-smooth);
+  }
+  .btn:active{transform:scale(.96);}
+  /* ripple */
+  .btn .ripple{
+    position:absolute;border-radius:50%;transform:scale(0);
+    background:radial-gradient(circle, rgba(255,255,255,0.6), rgba(255,255,255,0) 60%);
+    animation:ripple .8s var(--ease-smooth);
+    pointer-events:none;
+  }
+  @keyframes ripple{to{transform:scale(4);opacity:0;}}
+  .btn-primary{
+    background:linear-gradient(180deg, #13b6bb, #0a7a82);
+    color:#fff;width:100%;padding:13px;margin-top:6px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.5),
+      inset 0 -2px 6px rgba(0,0,0,0.15),
+      0 10px 24px -10px rgba(10,70,90,0.45);
+  }
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.55), 0 14px 28px -10px rgba(10,70,90,0.55);}
+  .btn-outline{
+    background:rgba(255,255,255,.55);border-color:var(--glass-border);color:var(--ink);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .btn-outline:hover{background:rgba(255,255,255,.8);transform:translateY(-1px);}
+  .btn-accent{
+    background:linear-gradient(180deg, #ffb9c4, #ff7a8a 55%, #e85a6e);
+    color:#fff;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.6),
+      inset 0 -2px 6px rgba(0,0,0,0.12),
+      0 10px 22px -10px rgba(232,90,110,0.55);
+  }
+  .btn-accent:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.7), 0 14px 26px -10px rgba(232,90,110,0.65);}
+  .btn-ghost{background:transparent;color:var(--ink-soft);padding:6px 10px;font-size:13px;}
+  .btn-ghost:hover{color:var(--ink);background:rgba(255,255,255,0.4);}
+  .login-error{
+    background:var(--danger-soft);color:var(--danger);font-size:13px;
+    padding:10px 14px;border-radius:14px;margin-bottom:14px;display:none;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+
+  /* ---------- App shell ---------- */
+  #app-shell{display:none;min-height:100vh;position:relative;z-index:1;}
+  #app-shell.active{display:flex;}
+  .sidebar{
+    width:236px;flex-shrink:0;
+    background:var(--glass-bg);
+    border-right:1px solid var(--glass-border);
+    -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(160%);
+    backdrop-filter:blur(var(--glass-blur)) saturate(160%);
+    display:flex;flex-direction:column;padding:22px 16px;
+    position:sticky;top:0;height:100vh;
+    box-shadow:inset -1px 0 0 rgba(255,255,255,0.6), 6px 0 24px -18px rgba(10,70,90,0.25);
+    animation:slideInLeft .7s var(--ease-spring);
+  }
+  @keyframes slideInLeft{from{opacity:0;transform:translateX(-18px);filter:blur(4px);}to{opacity:1;transform:translateX(0);filter:blur(0);}}
+  .sidebar-brand{display:flex;align-items:center;gap:10px;padding:0 6px 20px;border-bottom:1px solid var(--line);margin-bottom:18px;}
+  .sidebar-brand .brandname{font-family:'Fraunces',serif;font-style:italic;font-weight:560;font-size:17.5px;letter-spacing:-0.01em;}
+  .sidebar-brand .brandname sub{display:block;font-family:'JetBrains Mono',monospace;font-style:normal;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);margin-top:3px;}
+  nav.navlist{display:flex;flex-direction:column;gap:4px;flex:1;}
+  .navitem{
+    display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:13px;
+    font-size:13.5px;color:var(--ink-soft);cursor:pointer;font-weight:500;letter-spacing:-0.005em;
+    border:1px solid transparent;position:relative;
+    transition:background .4s var(--ease-smooth),color .4s var(--ease-smooth),transform .4s var(--ease-spring),box-shadow .4s var(--ease-smooth);
+  }
+  .navitem svg{width:17px;height:17px;flex-shrink:0;transition:transform .5s var(--ease-spring);}
+  .navitem:hover{background:rgba(255,255,255,.55);color:var(--ink);transform:translateX(3px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.8);}
+  .navitem:hover svg{transform:scale(1.12) rotate(-4deg);}
+  .navitem.active{
+    background:linear-gradient(180deg, #13b6bb, #0a7a82);
+    color:#fff;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.5),
+      inset 0 -2px 6px rgba(0,0,0,0.12),
+      0 10px 22px -10px rgba(10,70,90,0.5);
+  }
+  .navitem .navcount{
+    margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;
+    background:rgba(255,255,255,0.7);color:var(--ink-soft);padding:2px 8px;border-radius:20px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .navitem.active .navcount{background:rgba(255,255,255,.22);color:#fff;}
+  .sidebar-foot{border-top:1px solid var(--line);padding-top:14px;margin-top:10px;}
+  .admin-chip{display:flex;align-items:center;gap:9px;padding:6px;font-size:12.5px;color:var(--ink-soft);}
+  .admin-dot{
+    width:9px;height:9px;border-radius:50%;flex-shrink:0;
+    background:radial-gradient(circle at 30% 30%, #fff, var(--accent-2) 60%);
+    box-shadow:0 0 0 2px rgba(255,255,255,0.6), 0 0 10px rgba(255,122,138,0.6);
+    animation:pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.15);opacity:.8;}}
+
+  .main{flex:1;min-width:0;padding:30px 38px 60px;}
+  .topbar{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:26px;flex-wrap:wrap;gap:10px;animation:fade .6s var(--ease-smooth);}
+  .topbar h1{font-size:32px;font-weight:640;margin:0;font-variation-settings:'opsz' 40;letter-spacing:-0.02em;}
+  .topbar .eyebrow{
+    display:flex;align-items:center;gap:7px;
+    font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--accent-deep);margin:0 0 6px;
+  }
+  .topbar .eyebrow::before{content:"";width:14px;height:1.5px;background:var(--accent);display:inline-block;border-radius:2px;}
+  .topbar-actions{display:flex;gap:10px;}
+
+  .view{display:none;}
+  .view.active{display:block;animation:fade .6s var(--ease-smooth);}
+  @keyframes fade{from{opacity:0;transform:translateY(12px);filter:blur(4px);}to{opacity:1;transform:translateY(0);filter:blur(0);}}
+
+  /* ---------- Stat cards as glass bubbles ---------- */
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+  .stat-card{
+    background:var(--glass-bg-strong);
+    border:1px solid var(--glass-border);border-radius:24px;
+    padding:20px 20px 18px;position:relative;overflow:hidden;
+    -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(160%);
+    backdrop-filter:blur(var(--glass-blur)) saturate(160%);
+    box-shadow:var(--glass-shadow);
+    transition:transform .5s var(--ease-spring),box-shadow .5s var(--ease-smooth);
+    animation:cardIn .7s var(--ease-spring) backwards;
+  }
+  /* glossy top highlight — the "water bubble" look */
+  .stat-card::before{
+    content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+    background:
+      radial-gradient(80% 50% at 50% -10%, rgba(255,255,255,0.95), rgba(255,255,255,0) 60%),
+      radial-gradient(40% 30% at 85% 110%, rgba(189,235,233,0.55), transparent 70%);
+  }
+  /* little glass bubble badge */
+  .stat-card::after{
+    content:"";position:absolute;top:16px;right:16px;width:14px;height:14px;border-radius:50%;
+    background:
+      radial-gradient(circle at 35% 30%, #fff, rgba(255,255,255,0.4) 45%, transparent 70%),
+      radial-gradient(circle at 70% 80%, rgba(15,163,168,0.45), transparent 70%);
+    border:1px solid rgba(255,255,255,0.8);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 10px -4px rgba(10,70,90,0.3);
+  }
+  .stat-card:hover{transform:translateY(-4px);box-shadow:var(--glass-shadow), 0 24px 40px -22px rgba(10,70,90,0.45);}
+  .stat-grid .stat-card:nth-child(1){animation-delay:.04s;}
+  .stat-grid .stat-card:nth-child(2){animation-delay:.1s;}
+  .stat-grid .stat-card:nth-child(3){animation-delay:.16s;}
+  .stat-grid .stat-card:nth-child(4){animation-delay:.22s;}
+  @keyframes cardIn{from{opacity:0;transform:translateY(16px) scale(.96);filter:blur(6px);}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0);}}
+  .stat-label{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:.11em;color:var(--ink-soft);margin-bottom:12px;position:relative;}
+  .stat-value{
+    font-family:'Fraunces',serif;font-size:36px;font-weight:600;line-height:1;
+    letter-spacing:-0.02em;font-variant-numeric:tabular-nums lining-nums;
+    font-variation-settings:'opsz' 30;position:relative;
+  }
+  .stat-sub{font-size:12.5px;color:var(--ink-soft);margin-top:9px;letter-spacing:.01em;position:relative;}
+  .stat-card.warn .stat-value{color:var(--accent-2);}
+  .stat-card.danger .stat-value{color:var(--danger);}
+
+  .panel{
+    background:var(--glass-bg-strong);
+    border:1px solid var(--glass-border);border-radius:24px;
+    margin-bottom:22px;overflow:hidden;
+    -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(160%);
+    backdrop-filter:blur(var(--glass-blur)) saturate(160%);
+    box-shadow:var(--glass-shadow);
+    animation:cardIn .7s var(--ease-spring) backwards;
+    position:relative;
+  }
+  .panel::before{
+    content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+    background:radial-gradient(90% 40% at 50% -10%, rgba(255,255,255,0.85), transparent 60%);
+  }
+  .panel-head{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--line);position:relative;}
+  .panel-head h3{margin:0;font-size:16px;font-weight:600;letter-spacing:-0.01em;display:flex;align-items:center;gap:9px;}
+  .panel-head h3::before{
+    content:"";width:8px;height:8px;border-radius:50%;flex-shrink:0;
+    background:radial-gradient(circle at 30% 30%, #fff, var(--accent) 55%, var(--accent-deep));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.9), 0 0 8px rgba(15,163,168,0.5);
+  }
+  .panel-body{padding:6px 22px 18px;position:relative;}
+  .empty{padding:34px 10px;text-align:center;color:var(--ink-soft);font-size:13.5px;}
+  .empty .axis-mark{margin:0 auto 12px;opacity:.6;}
+
+  .row-item{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);animation:rowIn .5s var(--ease-smooth) backwards;transition:transform .4s var(--ease-smooth),background .4s var(--ease-smooth);border-radius:10px;padding-left:6px;padding-right:6px;}
+  .row-item:hover{transform:translateX(3px);background:rgba(255,255,255,0.35);}
+  .row-item:last-child{border-bottom:none;}
+  .row-item .rtitle{font-size:13.5px;font-weight:600;letter-spacing:-0.005em;}
+  .row-item .rsub{font-size:12px;color:var(--ink-soft);margin-top:3px;letter-spacing:.01em;line-height:1.55;}
+  .tag{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;padding:4px 10px;border-radius:20px;white-space:nowrap;box-shadow:inset 0 1px 0 rgba(255,255,255,0.7);}
+  .tag.open{background:var(--danger-soft);color:var(--danger);}
+  .tag.progress{background:#fff0d6;color:#b06b1f;}
+  .tag.resolved{background:var(--accent-soft);color:var(--accent-deep);}
+  .tag.paid{background:var(--accent-soft);color:var(--accent-deep);}
+  .tag.pending{background:#fff0d6;color:#b06b1f;}
+  .tag.overdue{background:var(--danger-soft);color:var(--danger);}
+  .tag.available{background:var(--accent-soft);color:var(--accent-deep);}
+  .tag.full{background:var(--danger-soft);color:var(--danger);}
+
+  /* ---------- Table ---------- */
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{
+    text-align:left;font-family:'JetBrains Mono',monospace;font-size:10.5px;
+    text-transform:uppercase;letter-spacing:.1em;color:var(--ink-soft);
+    padding:10px 12px;border-bottom:1px solid var(--line);font-weight:500;
+  }
+  tbody td strong{font-weight:600;letter-spacing:-0.005em;}
+  tbody td{padding:12px 12px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr{transition:background .35s var(--ease-smooth),transform .35s var(--ease-smooth);animation:rowIn .5s var(--ease-smooth) backwards;}
+  tbody tr:hover{background:rgba(255,255,255,.55);}
+  @keyframes rowIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  tbody tr:nth-child(1){animation-delay:.02s;} tbody tr:nth-child(2){animation-delay:.05s;}
+  tbody tr:nth-child(3){animation-delay:.08s;} tbody tr:nth-child(4){animation-delay:.11s;}
+  tbody tr:nth-child(5){animation-delay:.14s;} tbody tr:nth-child(6){animation-delay:.17s;}
+  tbody tr:nth-child(n+7){animation-delay:.2s;}
+  .row-item:nth-child(1){animation-delay:.02s;} .row-item:nth-child(2){animation-delay:.06s;}
+  .row-item:nth-child(3){animation-delay:.1s;} .row-item:nth-child(4){animation-delay:.14s;}
+  .row-item:nth-child(n+5){animation-delay:.18s;}
+  td.num,th.num{font-family:'JetBrains Mono',monospace;}
+  .row-actions{display:flex;gap:6px;justify-content:flex-end;}
+
+  /* glass bubble icon buttons */
+  .icon-btn{
+    width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,0.8);
+    background:
+      radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95), rgba(255,255,255,0.3) 40%, transparent 70%),
+      linear-gradient(180deg, rgba(255,255,255,0.85), rgba(220,240,238,0.7));
+    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.9),
+      inset 0 -2px 6px rgba(10,70,90,0.06),
+      0 4px 10px -4px rgba(10,70,90,0.3);
+    transition:background .4s var(--ease-smooth),color .4s var(--ease-smooth),transform .4s var(--ease-spring),box-shadow .4s var(--ease-smooth);
+  }
+  .icon-btn:hover{
+    color:var(--accent-deep);transform:translateY(-2px) scale(1.05);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.95),
+      inset 0 -2px 6px rgba(10,70,90,0.08),
+      0 8px 16px -6px rgba(10,70,90,0.4);
+  }
+  .icon-btn.danger:hover{
+    color:var(--danger);
+    background:
+      radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95), rgba(255,225,228,0.5) 40%, transparent 70%),
+      linear-gradient(180deg, #ffd3d8, #ffb9c4);
+  }
+  .icon-btn svg{width:14px;height:14px;}
+
+  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
+  .search-box{
+    flex:1;min-width:180px;display:flex;align-items:center;gap:8px;
+    border:1px solid var(--glass-border);border-radius:16px;padding:9px 14px;
+    background:var(--glass-bg-strong);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(10,70,90,0.04);
+    -webkit-backdrop-filter:blur(var(--glass-blur));backdrop-filter:blur(var(--glass-blur));
+    transition:box-shadow .4s var(--ease-smooth),border-color .4s var(--ease-smooth),transform .3s var(--ease-spring);
+  }
+  .search-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px rgba(15,163,168,0.18), inset 0 1px 0 rgba(255,255,255,0.9);transform:translateY(-1px);}
+  .search-box svg{width:15px;height:15px;color:var(--ink-soft);flex-shrink:0;}
+  .search-box input{border:none;outline:none;background:transparent;font-family:'Space Grotesk',sans-serif;font-size:13.5px;color:var(--ink);width:100%;}
+  select.filter-select{
+    padding:9px 32px 9px 14px;border:1px solid var(--glass-border);border-radius:16px;
+    background:var(--glass-bg-strong);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.9);
+    -webkit-backdrop-filter:blur(var(--glass-blur));backdrop-filter:blur(var(--glass-blur));
+    font-family:'Space Grotesk',sans-serif;font-size:13px;color:var(--ink);cursor:pointer;
+    transition:transform .3s var(--ease-spring),box-shadow .3s var(--ease-smooth);
+  }
+  select.filter-select:hover{transform:translateY(-1px);}
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop{
+    display:none;position:fixed;inset:0;background:rgba(10,40,55,.28);
+    align-items:center;justify-content:center;z-index:100;padding:20px;
+    -webkit-backdrop-filter:blur(10px) saturate(140%);backdrop-filter:blur(10px) saturate(140%);
+    animation:backdropIn .4s var(--ease-smooth);
+  }
+  .modal-backdrop.active{display:flex;}
+  @keyframes backdropIn{from{opacity:0;}to{opacity:1;}}
+  .modal{
+    background:linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(238,248,246,0.92) 100%);
+    border-radius:28px;border:1px solid var(--glass-border);
+    width:100%;max-width:470px;max-height:88vh;overflow-y:auto;
+    box-shadow:
+      0 30px 70px -20px rgba(10,70,90,0.4),
+      0 2px 0 rgba(255,255,255,0.8) inset;
+    -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(160%);
+    backdrop-filter:blur(var(--glass-blur)) saturate(160%);
+    animation:modalIn .55s var(--ease-spring);
+    position:relative;overflow-x:hidden;
+  }
+  .modal::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:5px;
+    background:linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent));
+    background-size:200% 100%;
+    animation:shimmer 4s linear infinite;
+  }
+  @keyframes shimmer{0%{background-position:0% 0;}100%{background-position:200% 0;}}
+  @keyframes modalIn{from{opacity:0;transform:translateY(18px) scale(.94);filter:blur(6px);}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0);}}
+  .modal-head{display:flex;align-items:center;gap:13px;padding:24px 24px 18px;border-bottom:1px solid var(--line);}
+  .modal-head .modal-icon{
+    width:40px;height:40px;flex-shrink:0;border-radius:13px;
+    background:
+      radial-gradient(circle at 30% 25%, rgba(255,255,255,0.9), transparent 60%),
+      linear-gradient(145deg, var(--accent-soft), #b9eae8);
+    border:1px solid rgba(255,255,255,0.8);
+    display:flex;align-items:center;justify-content:center;color:var(--accent-deep);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.9),
+      inset 0 -3px 8px rgba(10,70,90,0.08),
+      0 8px 18px -6px rgba(10,70,90,0.35);
+  }
+  .modal-head .modal-icon svg{width:18px;height:18px;}
+  .modal-head-text{flex:1;min-width:0;}
+  .modal-head h3{margin:0;font-size:18.5px;font-weight:600;letter-spacing:-0.015em;font-variation-settings:'opsz' 30;}
+  .modal-head .modal-eyebrow{
+    font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--accent-deep);margin:0 0 3px;
+  }
+  .modal-close-x{
+    width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    color:var(--ink-soft);cursor:pointer;
+    background:
+      radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95), rgba(255,255,255,0.4) 50%, transparent 75%),
+      rgba(255,255,255,0.6);
+    border:1px solid rgba(255,255,255,0.8);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 10px -4px rgba(10,70,90,0.3);
+    transition:background .3s var(--ease-smooth),color .3s var(--ease-smooth),transform .4s var(--ease-spring);
+  }
+  .modal-close-x:hover{color:var(--danger);transform:rotate(90deg) scale(1.08);background:radial-gradient(circle at 30% 30%, #fff, #ffd3d8 60%, #ffb9c4);}
+  .modal-body{padding:22px 24px;}
+  .modal-body .field:last-child{margin-bottom:0;}
+  .modal-foot{padding:16px 24px 22px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--line);background:rgba(255,255,255,.4);}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  select,textarea{
+    width:100%;padding:12px 14px;border:1px solid var(--glass-border);border-radius:14px;
+    background:rgba(255,255,255,.7);font-family:'Space Grotesk',sans-serif;font-size:14px;color:var(--ink);outline:none;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.9);
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+    transition:border-color .4s var(--ease-smooth),box-shadow .4s var(--ease-smooth),background .4s var(--ease-smooth),transform .3s var(--ease-spring);
+  }
+  select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(15,163,168,0.18), inset 0 1px 0 rgba(255,255,255,0.9);background:#fff;transform:translateY(-1px);}
+  textarea{resize:vertical;min-height:72px;}
+
+  /* ---------- Toast ---------- */
+  #toast-wrap{position:fixed;bottom:22px;right:22px;display:flex;flex-direction:column;gap:8px;z-index:200;}
+  .toast{
+    background:rgba(10,40,55,.82);color:#fff;padding:12px 18px;border-radius:16px;font-size:13px;
+    -webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.25),
+      0 14px 30px -10px rgba(10,40,55,0.5);
+    animation:toastin .5s var(--ease-spring);
+    display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.18);
+  }
+  .toast.err{background:rgba(226,82,106,.9);}
+  @keyframes toastin{from{opacity:0;transform:translateY(14px) scale(.92);filter:blur(4px);}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0);}}
+
+  /* ---------------- Student portal ---------------- */
+  #student-shell{display:none;min-height:100vh;position:relative;z-index:1;}
+  #student-shell.active{display:block;animation:fade .6s var(--ease-smooth);}
+  .sp-topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 28px;border-bottom:1px solid var(--glass-border);
+    background:var(--glass-bg);
+    -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(160%);
+    backdrop-filter:blur(var(--glass-blur)) saturate(160%);
+    position:sticky;top:0;z-index:2;
+  }
+  .sp-topbar-right{display:flex;align-items:center;gap:14px;}
+
+  @media(max-width:920px){
+    .stat-grid{grid-template-columns:repeat(2,1fr);}
+    .sidebar{width:76px;padding:18px 10px;}
+    .sidebar-brand .brandname,.navitem span.label,.admin-chip span{display:none;}
+    .navitem{justify-content:center;}
+    .navitem .navcount{display:none;}
+    .main{padding:22px 16px 50px;}
+    .grid-2{grid-template-columns:1fr;}
+  }
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px;}
+</style>
+</head>
+<body>
+
+<!-- ambient water background -->
+<div class="water-bg" id="water-bg"></div>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="axis-mark" id="login-axis"></div>
+      <div class="brandname">Frozy Axis<sub>Hostel Management</sub></div>
+    </div>
+    <div class="role-tabs" id="role-tabs">
+      <div class="role-tab-indicator" id="role-tab-indicator"></div>
+      <div class="role-tab active" data-role="admin">Admin</div>
+      <div class="role-tab" data-role="student">Student</div>
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <form id="login-form">
+      <div class="field">
+        <label for="login-email" id="login-email-label">Admin email</label>
+        <input type="email" id="login-email" autocomplete="username" required placeholder="warden@frozyaxis.com" />
+      </div>
+      <div class="field">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" autocomplete="current-password" required placeholder="••••••••" />
+      </div>
+      <button type="submit" class="btn btn-primary" id="login-submit">Sign in</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== APP SHELL ===================== -->
+<div id="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="axis-mark" style="width:30px;height:30px;"></div>
+      <div class="brandname">Frozy Axis<sub>Hostel Mgmt</sub></div>
+    </div>
+    <nav class="navlist" id="navlist">
+      <div class="navitem active" data-view="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
+        <span class="label">Dashboard</span>
+      </div>
+      <div class="navitem" data-view="rooms">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>
+        <span class="label">Rooms</span>
+        <span class="navcount" id="count-rooms">0</span>
+      </div>
+      <div class="navitem" data-view="students">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>
+        <span class="label">Students</span>
+        <span class="navcount" id="count-students">0</span>
+      </div>
+      <div class="navitem" data-view="fees">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M9 15s.8 1.4 3 1.4 3-1 3-2.2c0-2.8-6-1.2-6-4C9 8.9 10.3 8 12 8s3 .8 3 .8M12 6.5v11"/></svg>
+        <span class="label">Fees</span>
+        <span class="navcount" id="count-fees">0</span>
+      </div>
+      <div class="navitem" data-view="complaints">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 3v18"/><path d="M5 4h11l-2.5 3.5L16 11H5"/></svg>
+        <span class="label">Complaints</span>
+        <span class="navcount" id="count-complaints">0</span>
+      </div>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="admin-chip"><span class="admin-dot"></span><span id="admin-email-chip">—</span></div>
+      <button class="btn btn-ghost" id="logout-btn" style="width:100%;justify-content:flex-start;">Sign out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- DASHBOARD -->
+    <section class="view active" data-view="dashboard">
+      <div class="topbar">
+        <div>
+          <p class="eyebrow">Overview</p>
+          <h1>Dashboard</h1>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-label">Total students</div><div class="stat-value mono" id="stat-students">0</div><div class="stat-sub">Currently enrolled</div></div>
+        <div class="stat-card"><div class="stat-label">Occupancy</div><div class="stat-value mono" id="stat-occupancy">0%</div><div class="stat-sub" id="stat-occupancy-sub">0 / 0 beds filled</div></div>
+        <div class="stat-card warn"><div class="stat-label">Fees pending</div><div class="stat-value mono" id="stat-fees-pending">₹0</div><div class="stat-sub" id="stat-fees-sub">0 unpaid invoices</div></div>
+        <div class="stat-card danger"><div class="stat-label">Open complaints</div><div class="stat-value mono" id="stat-complaints">0</div><div class="stat-sub">Needs attention</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><h3>Recent complaints</h3></div>
+          <div class="panel-body" id="dash-complaints"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Pending fees</h3></div>
+          <div class="panel-body" id="dash-fees"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROOMS -->
+    <section class="view" data-view="rooms">
+      <div class="topbar">
+        <div><p class="eyebrow">Property</p><h1>Rooms</h1></div>
+        <div class="topbar-actions"><button class="btn btn-accent" id="add-room-btn">+ Add room</button></div>
+      </div>
+      <div class="toolbar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input type="text" id="room-search" placeholder="Search room number or type…" />
+        </div>
+        <select class="filter-select" id="room-filter">
+          <option value="all">All rooms</option>
+          <option value="available">Available</option>
+          <option value="full">Full</option>
+        </select>
+      </div>
+      <div class="panel"><div class="panel-body" style="padding-top:12px;">
+        <table id="rooms-table">
+          <thead><tr><th>Room</th><th>Floor</th><th>Type</th><th class="num">Capacity</th><th class="num">Occupied</th><th class="num">Fee / mo</th><th>Status</th><th></th></tr></thead>
+          <tbody id="rooms-tbody"></tbody>
+        </table>
+        <div class="empty" id="rooms-empty" style="display:none;"><div class="axis-mark" style="margin:0 auto 12px;"></div>No rooms yet — add your first room to get started.</div>
+      </div></div>
+    </section>
+
+    <!-- STUDENTS -->
+    <section class="view" data-view="students">
+      <div class="topbar">
+        <div><p class="eyebrow">Residents</p><h1>Students</h1></div>
+        <div class="topbar-actions"><button class="btn btn-accent" id="add-student-btn">+ Add student</button></div>
+      </div>
+      <div class="toolbar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input type="text" id="student-search" placeholder="Search name, phone or room…" />
+        </div>
+      </div>
+      <div class="panel"><div class="panel-body" style="padding-top:12px;">
+        <table id="students-table">
+          <thead><tr><th>Name</th><th>Room</th><th>Phone</th><th>Guardian</th><th>Admitted</th><th>Status</th><th>Portal</th><th></th></tr></thead>
+          <tbody id="students-tbody"></tbody>
+        </table>
+        <div class="empty" id="students-empty" style="display:none;"><div class="axis-mark" style="margin:0 auto 12px;"></div>No students yet — add your first resident.</div>
+      </div></div>
+    </section>
+
+    <!-- FEES -->
+    <section class="view" data-view="fees">
+      <div class="topbar">
+        <div><p class="eyebrow">Finance</p><h1>Fees</h1></div>
+        <div class="topbar-actions"><button class="btn btn-accent" id="add-fee-btn">+ Add invoice</button></div>
+      </div>
+      <div class="toolbar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input type="text" id="fee-search" placeholder="Search student…" />
+        </div>
+        <select class="filter-select" id="fee-filter">
+          <option value="all">All statuses</option>
+          <option value="pending">Pending</option>
+          <option value="paid">Paid</option>
+          <option value="overdue">Overdue</option>
+        </select>
+      </div>
+      <div class="panel"><div class="panel-body" style="padding-top:12px;">
+        <table id="fees-table">
+          <thead><tr><th>Student</th><th>Month</th><th class="num">Amount</th><th>Due date</th><th>Status</th><th></th></tr></thead>
+          <tbody id="fees-tbody"></tbody>
+        </table>
+        <div class="empty" id="fees-empty" style="display:none;"><div class="axis-mark" style="margin:0 auto 12px;"></div>No invoices yet.</div>
+      </div></div>
+    </section>
+
+    <!-- COMPLAINTS -->
+    <section class="view" data-view="complaints">
+      <div class="topbar">
+        <div><p class="eyebrow">Maintenance</p><h1>Complaints</h1></div>
+        <div class="topbar-actions"><button class="btn btn-accent" id="add-complaint-btn">+ Log complaint</button></div>
+      </div>
+      <div class="toolbar">
+        <select class="filter-select" id="complaint-filter">
+          <option value="all">All statuses</option>
+          <option value="open">Open</option>
+          <option value="progress">In progress</option>
+          <option value="resolved">Resolved</option>
+        </select>
+      </div>
+      <div class="panel"><div class="panel-body" style="padding-top:12px;" id="complaints-list"></div>
+        <div class="empty" id="complaints-empty" style="display:none;"><div class="axis-mark" style="margin:0 auto 12px;"></div>No complaints logged.</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ===================== STUDENT PORTAL ===================== -->
+<div id="student-shell">
+  <header class="sp-topbar">
+    <div class="sidebar-brand" style="border:none;margin:0;padding:0;">
+      <div class="axis-mark" style="width:30px;height:30px;"></div>
+      <div class="brandname">Frozy Axis<sub>Student Portal</sub></div>
+    </div>
+    <div class="sp-topbar-right">
+      <div class="admin-chip"><span class="admin-dot"></span><span id="student-email-chip">—</span></div>
+      <button class="btn btn-ghost" id="student-logout-btn">Sign out</button>
+    </div>
+  </header>
+
+  <main class="main" style="max-width:760px;margin:0 auto;">
+    <div class="topbar">
+      <div><p class="eyebrow">Welcome</p><h1 id="student-portal-name">—</h1></div>
+    </div>
+
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+      <div class="stat-card"><div class="stat-label">Room</div><div class="stat-value mono" id="sp-room">—</div><div class="stat-sub" id="sp-room-sub">—</div></div>
+      <div class="stat-card warn"><div class="stat-label">Fees pending</div><div class="stat-value mono" id="sp-fees-pending">₹0</div><div class="stat-sub" id="sp-fees-sub">0 unpaid invoices</div></div>
+      <div class="stat-card danger"><div class="stat-label">My complaints</div><div class="stat-value mono" id="sp-complaints-open">0</div><div class="stat-sub">Open right now</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>My fees</h3></div>
+      <div class="panel-body" style="padding-top:12px;">
+        <table>
+          <thead><tr><th>Month</th><th class="num">Amount</th><th>Due date</th><th>Status</th></tr></thead>
+          <tbody id="sp-fees-tbody"></tbody>
+        </table>
+        <div class="empty" id="sp-fees-empty" style="display:none;">No invoices on record yet.</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>My complaints</h3>
+        <button class="btn btn-accent" id="sp-add-complaint-btn" style="padding:8px 14px;font-size:13px;">+ New complaint</button>
+      </div>
+      <div class="panel-body" style="padding-top:12px;" id="sp-complaints-list"></div>
+      <div class="empty" id="sp-complaints-empty" style="display:none;">You haven't logged any complaints.</div>
+    </div>
+  </main>
+</div>
+
+<div id="toast-wrap"></div>
+
+<!-- ===================== MODALS ===================== -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal" id="modal-box"></div>
+</div>
+
+<script type="module">
+/* ============================================================
+   FROZY AXIS — Firebase config
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyCDbnrHZfJ19NAyvEwhAVMxX8ebAwQ7xP0",
+  authDomain: "frozy-c8ab4.firebaseapp.com",
+  projectId: "frozy-c8ab4",
+  storageBucket: "frozy-c8ab4.firebasestorage.app",
+  messagingSenderId: "647981822313",
+  appId: "1:647981822313:web:4c4fed22c6313097f74df8",
+  measurementId: "G-TENX05GM2S"
+};
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics.js";
+import {
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut,
+  createUserWithEmailAndPassword, setPersistence, browserSessionPersistence
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import {
+  getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc,
+  query, where
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const analytics = getAnalytics(app);
+
+setPersistence(auth, browserSessionPersistence).catch(err => console.error('Auth persistence error:', err));
+
+const secondaryApp = initializeApp(firebaseConfig, 'Secondary');
+const secondaryAuth = getAuth(secondaryApp);
+
+async function createStudentAuthAccount(email, password){
+  const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+  const uid = cred.user.uid;
+  await signOut(secondaryAuth);
+  return uid;
+}
+
+/* ---------------- state ---------------- */
+let rooms = [], students = [], fees = [], complaints = [];
+let unsubs = [];
+let currentRole = null;
+const ADMIN_EMAILS = ['businessfrozy@gmail.com'];
+let currentStudent = null;
+let selectedLoginRole = 'admin';
+
+/* ---------------- helpers ---------------- */
+const $ = (sel, ctx=document) => ctx.querySelector(sel);
+const $$ = (sel, ctx=document) => [...ctx.querySelectorAll(sel)];
+const fmtMoney = n => "₹" + Number(n||0).toLocaleString("en-IN");
+const fmtDate = s => { if(!s) return "—"; const d = new Date(s); return isNaN(d) ? s : d.toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}); };
+const todayISO = () => new Date().toISOString().slice(0,10);
+const esc = s => (s||"").toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(msg, isErr=false){
+  const el = document.createElement('div');
+  el.className = 'toast' + (isErr ? ' err' : '');
+  el.textContent = msg;
+  $('#toast-wrap').appendChild(el);
+  setTimeout(()=>el.remove(), 3200);
+}
+
+function studentName(id){ const s = students.find(x=>x.id===id); return s ? s.name : "Unknown"; }
+function roomLabel(id){ const r = rooms.find(x=>x.id===id); return r ? r.roomNumber : "Unassigned"; }
+function occupantsCount(roomId){ return students.filter(s=>s.roomId===roomId).length; }
+
+/* ---------------- ripple on .btn ---------------- */
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('.btn');
+  if(!btn) return;
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  const r = document.createElement('span');
+  r.className = 'ripple';
+  r.style.width = r.style.height = size+'px';
+  r.style.left = (e.clientX - rect.left - size/2)+'px';
+  r.style.top = (e.clientY - rect.top - size/2)+'px';
+  btn.appendChild(r);
+  setTimeout(()=>r.remove(), 900);
+});
+
+/* ---------------- login role tabs ---------------- */
+$$('.role-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    $$('.role-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    const role = tab.dataset.role;
+    selectedLoginRole = role;
+    $('#role-tab-indicator').classList.toggle('student', role==='student');
+    $('#login-email-label').textContent = role==='student' ? 'Student email' : 'Admin email';
+    $('#login-email').placeholder = role==='student' ? 'you@email.com' : 'warden@frozyaxis.com';
+    const emailEl = $('#login-email');
+    const pwEl = $('#login-password');
+    emailEl.value = ''; pwEl.value = '';
+    $('#login-error').style.display = 'none';
+    const form = $('#login-form');
+    form.classList.remove('swap'); void form.offsetWidth; form.classList.add('swap');
+    emailEl.focus();
+  });
+});
+
+/* ---------------- auth ---------------- */
+$('#login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = $('#login-email').value.trim();
+  const pw = $('#login-password').value;
+  const btn = $('#login-submit');
+  const errEl = $('#login-error');
+  errEl.style.display = 'none';
+  btn.textContent = 'Signing in…'; btn.disabled = true;
+  try{ await signInWithEmailAndPassword(auth, email, pw); }
+  catch(err){ errEl.textContent = friendlyAuthError(err.code); errEl.style.display = 'block'; }
+  finally{ btn.textContent = 'Sign in'; btn.disabled = false; }
+});
+
+function friendlyAuthError(code){
+  const map = {
+    'auth/invalid-email':'That email address looks invalid.',
+    'auth/user-not-found':'No account matches that email.',
+    'auth/wrong-password':'Incorrect password.',
+    'auth/invalid-credential':'Email or password is incorrect.',
+    'auth/too-many-requests':'Too many attempts — try again shortly.'
+  };
+  return map[code] || 'Sign-in failed. Check your connection and try again.';
+}
+
+$('#logout-btn').addEventListener('click', () => signOut(auth));
+$('#student-logout-btn').addEventListener('click', () => signOut(auth));
+
+onAuthStateChanged(auth, async (user) => {
+  if(user){
+    $('#login-screen').style.display = 'none';
+    let studentSnap, adminSnap;
+    const isAllowlistedAdmin = ADMIN_EMAILS.includes((user.email||'').toLowerCase());
+    try{
+      studentSnap = await getDoc(doc(db,'students', user.uid));
+      if(!studentSnap.exists() && !isAllowlistedAdmin){
+        adminSnap = await getDoc(doc(db,'admins', user.uid));
+      }
+    }catch(err){ toast('Could not verify account: '+err.message, true); await signOut(auth); return; }
+    if(studentSnap.exists()){
+      currentRole = 'student';
+      currentStudent = { id: studentSnap.id, ...studentSnap.data() };
+      $('#app-shell').classList.remove('active');
+      $('#student-shell').classList.add('active');
+      $('#student-email-chip').textContent = user.email;
+      $('#student-portal-name').textContent = currentStudent.name || 'Student';
+      attachStudentListeners();
+      if(selectedLoginRole === 'admin') toast("This is a student account — signed into student portal.");
+    }else if(isAllowlistedAdmin || (adminSnap && adminSnap.exists())){
+      currentRole = 'admin'; currentStudent = null;
+      $('#student-shell').classList.remove('active');
+      $('#app-shell').classList.add('active');
+      $('#admin-email-chip').textContent = user.email;
+      attachListeners();
+      if(selectedLoginRole === 'student') toast("This is an admin account — signed into admin dashboard.");
+    }else{
+      $('#login-error').textContent = 'This account is not set up for admin or student access. Contact your warden.';
+      $('#login-error').style.display = 'block';
+      $('#login-screen').style.display = 'flex';
+      await signOut(auth); return;
+    }
+  }else{
+    currentRole = null; currentStudent = null;
+    $('#app-shell').classList.remove('active');
+    $('#student-shell').classList.remove('active');
+    $('#login-screen').style.display = 'flex';
+    unsubs.forEach(u=>u()); unsubs = [];
+    rooms=[]; students=[]; fees=[]; complaints=[];
+    $('#login-email').value=''; $('#login-password').value='';
+  }
+});
+
+/* ---------------- firestore listeners ---------------- */
+function attachListeners(){
+  unsubs.forEach(u=>u()); unsubs = [];
+  unsubs.push(onSnapshot(collection(db,'rooms'), snap => {
+    rooms = snap.docs.map(d=>({id:d.id,...d.data()})); renderAll();
+  }, err => toast('Rooms sync error: '+err.message, true)));
+  unsubs.push(onSnapshot(collection(db,'students'), snap => {
+    students = snap.docs.map(d=>({id:d.id,...d.data()})); renderAll();
+  }, err => toast('Students sync error: '+err.message, true)));
+  unsubs.push(onSnapshot(collection(db,'fees'), snap => {
+    fees = snap.docs.map(d=>({id:d.id,...d.data()})); renderAll();
+  }, err => toast('Fees sync error: '+err.message, true)));
+  unsubs.push(onSnapshot(collection(db,'complaints'), snap => {
+    complaints = snap.docs.map(d=>({id:d.id,...d.data()})); renderAll();
+  }, err => toast('Complaints sync error: '+err.message, true)));
+}
+
+function renderAll(){
+  $('#count-rooms').textContent = rooms.length;
+  $('#count-students').textContent = students.length;
+  $('#count-fees').textContent = fees.filter(f=>f.status!=='paid').length;
+  $('#count-complaints').textContent = complaints.filter(c=>c.status!=='resolved').length;
+  renderDashboard(); renderRooms(); renderStudents(); renderFees(); renderComplaints();
+}
+
+/* ---------------- STUDENT PORTAL ---------------- */
+let spFees = [], spComplaints = [], spRoom = null;
+
+function attachStudentListeners(){
+  unsubs.forEach(u=>u()); unsubs = [];
+  const uid = currentStudent.id;
+  if(currentStudent.roomId){
+    getDoc(doc(db,'rooms', currentStudent.roomId))
+      .then(snap => { spRoom = snap.exists() ? {id:snap.id, ...snap.data()} : null; renderStudentPortal(); })
+      .catch(()=>{ spRoom = null; renderStudentPortal(); });
+  }else{ spRoom = null; }
+  unsubs.push(onSnapshot(query(collection(db,'fees'), where('studentId','==',uid)), snap => {
+    spFees = snap.docs.map(d=>({id:d.id,...d.data()})); renderStudentPortal();
+  }, err => toast('Could not load fees: '+err.message, true)));
+  unsubs.push(onSnapshot(query(collection(db,'complaints'), where('studentId','==',uid)), snap => {
+    spComplaints = snap.docs.map(d=>({id:d.id,...d.data()})); renderStudentPortal();
+  }, err => toast('Could not load complaints: '+err.message, true)));
+  renderStudentPortal();
+}
+
+function spComputeFeeStatus(f){
+  if(f.status==='paid') return 'paid';
+  if(f.dueDate && f.dueDate < todayISO()) return 'overdue';
+  return 'pending';
+}
+
+function renderStudentPortal(){
+  if(currentRole !== 'student' || !currentStudent) return;
+  $('#sp-room').textContent = spRoom ? spRoom.roomNumber : 'Unassigned';
+  $('#sp-room-sub').textContent = spRoom ? `${spRoom.type||''} · ${fmtMoney(spRoom.feeAmount)}/mo` : 'Contact the warden';
+  const pending = spFees.filter(f=>spComputeFeeStatus(f)!=='paid');
+  const pendingAmt = pending.reduce((a,f)=>a+Number(f.amount||0),0);
+  $('#sp-fees-pending').textContent = fmtMoney(pendingAmt);
+  $('#sp-fees-sub').textContent = `${pending.length} unpaid invoice${pending.length!==1?'s':''}`;
+  const openCount = spComplaints.filter(c=>c.status!=='resolved').length;
+  $('#sp-complaints-open').textContent = openCount;
+  const feesSorted = spFees.slice().sort((a,b)=>(b.dueDate||'').localeCompare(a.dueDate||''));
+  $('#sp-fees-empty').style.display = feesSorted.length ? 'none' : 'block';
+  $('#sp-fees-tbody').innerHTML = feesSorted.map(f=>{
+    const st = spComputeFeeStatus(f);
+    return `<tr>
+      <td>${esc(f.month)}</td>
+      <td class="num">${fmtMoney(f.amount)}</td>
+      <td class="mono">${fmtDate(f.dueDate)}</td>
+      <td><span class="tag ${st}">${statusLabel(st)}</span></td>
+    </tr>`;
+  }).join('');
+  const compSorted = spComplaints.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  $('#sp-complaints-empty').style.display = compSorted.length ? 'none' : 'block';
+  $('#sp-complaints-list').innerHTML = compSorted.map(c=>`
+    <div class="row-item">
+      <div style="flex:1;">
+        <div class="rtitle">${esc(c.category)}</div>
+        <div class="rsub">${esc(c.description||'')}</div>
+        <div class="rsub mono" style="margin-top:4px;">Logged ${fmtDate(c.createdAt)}${c.status==='resolved' && c.resolvedAt ? ' · Resolved '+fmtDate(c.resolvedAt) : ''}</div>
+      </div>
+      <span class="tag ${c.status==='open'?'open':c.status==='progress'?'progress':'resolved'}">${statusLabel(c.status)}</span>
+    </div>`).join('');
+}
+
+function openStudentComplaintModal(){
+  openModal(`
+    ${modalHead('Log a complaint', 'New complaint', 'complaint')}
+    <div class="modal-body">
+      <div class="field"><label>Category</label>
+        <select id="sp-f-category">
+          ${['Electrical','Plumbing','Furniture','Cleanliness','Internet/Wi-Fi','Noise','Other'].map(c=>`<option>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Description</label><textarea id="sp-f-description" placeholder="What's the issue?"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" data-close>Cancel</button>
+      <button class="btn btn-accent" id="sp-save-complaint">Log complaint</button>
+    </div>`);
+  $$('[data-close]').forEach(b=>b.addEventListener('click', closeModal));
+  $('#sp-save-complaint').addEventListener('click', async ()=>{
+    const payload = {
+      studentId: currentStudent.id,
+      roomId: currentStudent.roomId || null,
+      category: $('#sp-f-category').value,
+      description: $('#sp-f-description').value.trim(),
+      status: 'open', createdAt: todayISO(), resolvedAt: null
+    };
+    try{ await addDoc(collection(db,'complaints'), payload); toast('Complaint logged'); closeModal(); }
+    catch(err){ toast(err.message, true); }
+  });
+}
+$('#sp-add-complaint-btn').addEventListener('click', openStudentComplaintModal);
+
+/* ---------------- navigation ---------------- */
+$$('.navitem').forEach(item=>{
+  item.addEventListener('click', ()=>{
+    $$('.navitem').forEach(n=>n.classList.remove('active'));
+    item.classList.add('active');
+    const v = item.dataset.view;
+    $$('.view').forEach(s=>s.classList.toggle('active', s.dataset.view===v));
+  });
+});
+
+/* ---------------- DASHBOARD ---------------- */
+function renderDashboard(){
+  $('#stat-students').textContent = students.length;
+  const totalBeds = rooms.reduce((a,r)=>a+Number(r.capacity||0),0);
+  const occ = totalBeds ? Math.round((students.length/totalBeds)*100) : 0;
+  $('#stat-occupancy').textContent = occ + '%';
+  $('#stat-occupancy-sub').textContent = `${students.length} / ${totalBeds} beds filled`;
+  const pending = fees.filter(f=>f.status!=='paid');
+  const pendingAmt = pending.reduce((a,f)=>a+Number(f.amount||0),0);
+  $('#stat-fees-pending').textContent = fmtMoney(pendingAmt);
+  $('#stat-fees-sub').textContent = `${pending.length} unpaid invoice${pending.length!==1?'s':''}`;
+  const openComplaints = complaints.filter(c=>c.status!=='resolved');
+  $('#stat-complaints').textContent = openComplaints.length;
+
+  const dashComplaints = $('#dash-complaints');
+  if(!complaints.length){ dashComplaints.innerHTML = `<div class="empty">Nothing logged yet.</div>`; }
+  else{
+    dashComplaints.innerHTML = complaints.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,5).map(c=>`
+      <div class="row-item">
+        <div style="flex:1;">
+          <div class="rtitle">${esc(c.category)} — ${esc(studentName(c.studentId))}</div>
+          <div class="rsub">Room ${esc(roomLabel(c.roomId))} · ${fmtDate(c.createdAt)}</div>
+        </div>
+        <span class="tag ${c.status==='open'?'open':c.status==='progress'?'progress':'resolved'}">${statusLabel(c.status)}</span>
+      </div>`).join('');
+  }
+  const dashFees = $('#dash-fees');
+  const pendingSorted = pending.slice().sort((a,b)=>(a.dueDate||'').localeCompare(b.dueDate||''));
+  if(!pendingSorted.length){ dashFees.innerHTML = `<div class="empty">All invoices settled.</div>`; }
+  else{
+    dashFees.innerHTML = pendingSorted.slice(0,5).map(f=>`
+      <div class="row-item">
+        <div style="flex:1;">
+          <div class="rtitle">${esc(studentName(f.studentId))}</div>
+          <div class="rsub">${esc(f.month)} · Due ${fmtDate(f.dueDate)}</div>
+        </div>
+        <span class="mono" style="font-size:13px;">${fmtMoney(f.amount)}</span>
+      </div>`).join('');
+  }
+}
+function statusLabel(s){ return {open:'Open',progress:'In progress',resolved:'Resolved',paid:'Paid',pending:'Pending',overdue:'Overdue'}[s] || s; }
+
+/* ---------------- ROOMS ---------------- */
+function renderRooms(){
+  const search = ($('#room-search').value||'').toLowerCase();
+  const filter = $('#room-filter').value;
+  const tbody = $('#rooms-tbody');
+  let list = rooms.slice().sort((a,b)=>(a.roomNumber||'').localeCompare(b.roomNumber||'', undefined, {numeric:true}));
+  list = list.filter(r=>{
+    const occ = occupantsCount(r.id);
+    const isFull = occ >= Number(r.capacity||0);
+    if(filter==='available' && isFull) return false;
+    if(filter==='full' && !isFull) return false;
+    const hay = `${r.roomNumber} ${r.type}`.toLowerCase();
+    return hay.includes(search);
+  });
+  $('#rooms-empty').style.display = list.length ? 'none' : 'block';
+  tbody.innerHTML = list.map(r=>{
+    const occ = occupantsCount(r.id);
+    const cap = Number(r.capacity||0);
+    const isFull = occ >= cap;
+    return `<tr>
+      <td class="mono">${esc(r.roomNumber)}</td>
+      <td>${esc(r.floor||'—')}</td>
+      <td>${esc(r.type||'—')}</td>
+      <td class="num">${cap}</td>
+      <td class="num">${occ}</td>
+      <td class="num">${fmtMoney(r.feeAmount)}</td>
+      <td><span class="tag ${isFull?'full':'available'}">${isFull?'Full':'Available'}</span></td>
+      <td><div class="row-actions">
+        <button class="icon-btn" data-action="edit-room" data-id="${r.id}" title="Edit">${iconEdit}</button>
+        <button class="icon-btn danger" data-action="delete-room" data-id="${r.id}" title="Delete">${iconTrash}</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+$('#room-search').addEventListener('input', renderRooms);
+$('#room-filter').addEventListener('change', renderRooms);
+
+/* ---------------- STUDENTS ---------------- */
+function renderStudents(){
+  const search = ($('#student-search').value||'').toLowerCase();
+  const tbody = $('#students-tbody');
+  let list = students.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  list = list.filter(s=>{
+    const hay = `${s.name} ${s.phone} ${roomLabel(s.roomId)}`.toLowerCase();
+    return hay.includes(search);
+  });
+  $('#students-empty').style.display = list.length ? 'none' : 'block';
+  tbody.innerHTML = list.map(s=>`
+    <tr>
+      <td><strong>${esc(s.name)}</strong></td>
+      <td class="mono">${esc(roomLabel(s.roomId))}</td>
+      <td class="mono">${esc(s.phone||'—')}</td>
+      <td>${esc(s.guardianName||'—')}${s.guardianPhone? ' · '+esc(s.guardianPhone):''}</td>
+      <td>${fmtDate(s.admissionDate)}</td>
+      <td><span class="tag ${s.status==='active'?'available':'progress'}">${s.status==='active'?'Active':'Inactive'}</span></td>
+      <td><span class="tag ${s.hasLogin?'resolved':'progress'}" style="${s.hasLogin?'':'opacity:.55;'}">${s.hasLogin?'Enabled':'None'}</span></td>
+      <td><div class="row-actions">
+        <button class="icon-btn" data-action="edit-student" data-id="${s.id}" title="Edit">${iconEdit}</button>
+        <button class="icon-btn danger" data-action="delete-student" data-id="${s.id}" title="Delete">${iconTrash}</button>
+      </div></td>
+    </tr>`).join('');
+}
+$('#student-search').addEventListener('input', renderStudents);
+
+/* ---------------- FEES ---------------- */
+function computeFeeStatus(f){
+  if(f.status==='paid') return 'paid';
+  if(f.dueDate && f.dueDate < todayISO()) return 'overdue';
+  return 'pending';
+}
+function renderFees(){
+  const search = ($('#fee-search').value||'').toLowerCase();
+  const filter = $('#fee-filter').value;
+  const tbody = $('#fees-tbody');
+  let list = fees.slice().sort((a,b)=>(b.dueDate||'').localeCompare(a.dueDate||''));
+  list = list.filter(f=>{
+    const st = computeFeeStatus(f);
+    if(filter!=='all' && st!==filter) return false;
+    return studentName(f.studentId).toLowerCase().includes(search);
+  });
+  $('#fees-empty').style.display = list.length ? 'none' : 'block';
+  tbody.innerHTML = list.map(f=>{
+    const st = computeFeeStatus(f);
+    return `<tr>
+      <td><strong>${esc(studentName(f.studentId))}</strong></td>
+      <td>${esc(f.month)}</td>
+      <td class="num">${fmtMoney(f.amount)}</td>
+      <td class="mono">${fmtDate(f.dueDate)}</td>
+      <td><span class="tag ${st}">${statusLabel(st)}</span></td>
+      <td><div class="row-actions">
+        ${st!=='paid' ? `<button class="icon-btn" data-action="mark-paid" data-id="${f.id}" title="Mark paid">${iconCheck}</button>` : ''}
+        <button class="icon-btn danger" data-action="delete-fee" data-id="${f.id}" title="Delete">${iconTrash}</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+$('#fee-search').addEventListener('input', renderFees);
+$('#fee-filter').addEventListener('change', renderFees);
+
+/* ---------------- COMPLAINTS ---------------- */
+function renderComplaints(){
+  const filter = $('#complaint-filter').value;
+  const wrap = $('#complaints-list');
+  let list = complaints.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  list = list.filter(c => filter==='all' || c.status===filter);
+  $('#complaints-empty').style.display = list.length ? 'none' : 'block';
+  wrap.innerHTML = list.map(c=>`
+    <div class="row-item">
+      <div style="flex:1;">
+        <div class="rtitle">${esc(c.category)} · ${esc(studentName(c.studentId))} <span class="rsub">Room ${esc(roomLabel(c.roomId))}</span></div>
+        <div class="rsub">${esc(c.description||'')}</div>
+        <div class="rsub mono" style="margin-top:4px;">Logged ${fmtDate(c.createdAt)}${c.status==='resolved' && c.resolvedAt ? ' · Resolved '+fmtDate(c.resolvedAt) : ''}</div>
+      </div>
+      <span class="tag ${c.status==='open'?'open':c.status==='progress'?'progress':'resolved'}">${statusLabel(c.status)}</span>
+      <div class="row-actions">
+        ${c.status!=='progress' && c.status!=='resolved' ? `<button class="icon-btn" data-action="complaint-progress" data-id="${c.id}" title="Mark in progress">${iconClock}</button>` : ''}
+        ${c.status!=='resolved' ? `<button class="icon-btn" data-action="complaint-resolve" data-id="${c.id}" title="Mark resolved">${iconCheck}</button>` : ''}
+        <button class="icon-btn danger" data-action="delete-complaint" data-id="${c.id}" title="Delete">${iconTrash}</button>
+      </div>
+    </div>`).join('');
+}
+$('#complaint-filter').addEventListener('change', renderComplaints);
+
+/* ---------------- icons ---------------- */
+const iconEdit = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
+const iconTrash = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>`;
+const iconCheck = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 12l5 5L20 6"/></svg>`;
+const iconClock = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`;
+
+/* ---------------- delegated row actions ---------------- */
+document.body.addEventListener('click', async (e)=>{
+  const btn = e.target.closest('[data-action]');
+  if(!btn) return;
+  const id = btn.dataset.id;
+  const action = btn.dataset.action;
+  try{
+    if(action==='edit-room') return openRoomModal(rooms.find(r=>r.id===id));
+    if(action==='delete-room') return confirmDelete('room', id, 'rooms');
+    if(action==='edit-student') return openStudentModal(students.find(s=>s.id===id));
+    if(action==='delete-student'){
+      const s = students.find(x=>x.id===id);
+      if(s?.hasLogin){
+        openConfirmModal('Delete this student?', `This removes their record and fee/complaint history. Their sign-in account will still exist — remove it separately in Firebase Console → Authentication → Users if needed.`, async ()=>{
+          try{ await deleteDoc(doc(db,'students',id)); toast('Student deleted'); closeModal(); }
+          catch(err){ toast(err.message, true); }
+        }); return;
+      }
+      return confirmDelete('student', id, 'students');
+    }
+    if(action==='mark-paid'){ await updateDoc(doc(db,'fees',id), {status:'paid', paidDate: todayISO()}); toast('Invoice marked paid'); return; }
+    if(action==='delete-fee') return confirmDelete('invoice', id, 'fees');
+    if(action==='complaint-progress'){ await updateDoc(doc(db,'complaints',id), {status:'progress'}); toast('Marked in progress'); return; }
+    if(action==='complaint-resolve'){ await updateDoc(doc(db,'complaints',id), {status:'resolved', resolvedAt: todayISO()}); toast('Complaint resolved'); return; }
+    if(action==='delete-complaint') return confirmDelete('complaint', id, 'complaints');
+  }catch(err){ toast(err.message, true); }
+});
+
+function confirmDelete(label, id, coll){
+  openConfirmModal(`Delete this ${label}?`, `This can't be undone.`, async ()=>{
+    try{ await deleteDoc(doc(db,coll,id)); toast(capitalize(label)+' deleted'); closeModal(); }
+    catch(err){ toast(err.message, true); }
+  });
+}
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+/* ---------------- modal engine ---------------- */
+const backdrop = $('#modal-backdrop');
+const modalBox = $('#modal-box');
+function openModal(html){ modalBox.innerHTML = html; backdrop.classList.add('active'); }
+function closeModal(){ backdrop.classList.remove('active'); modalBox.innerHTML=''; }
+const MODAL_ICONS = {
+  add: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>',
+  room: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>',
+  student: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>',
+  fee: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M9 15s.8 1.4 3 1.4 3-1 3-2.2c0-2.8-6-1.2-6-4C9 8.9 10.3 8 12 8s3 .8 3 .8M12 6.5v11"/></svg>',
+  complaint: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 3v18"/><path d="M5 4h11l-2.5 3.5L16 11H5"/></svg>',
+  warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L2.5 18a1.5 1.5 0 0 0 1.3 2.3h16.4a1.5 1.5 0 0 0 1.3-2.3L13.7 3.9a1.5 1.5 0 0 0-2.6 0Z"/></svg>'
+};
+function modalHead(title, eyebrow, icon){
+  return `<div class="modal-head">
+    <div class="modal-icon">${MODAL_ICONS[icon]||MODAL_ICONS.add}</div>
+    <div class="modal-head-text">
+      ${eyebrow ? `<div class="modal-eyebrow">${esc(eyebrow)}</div>` : ''}
+      <h3>${esc(title)}</h3>
+    </div>
+    <div class="modal-close-x" data-close>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </div>
+  </div>`;
+}
+backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) closeModal(); });
+
+function openConfirmModal(title, sub, onConfirm){
+  openModal(`
+    ${modalHead(title, 'Please confirm', 'warn')}
+    <div class="modal-body"><p style="color:var(--ink-soft);font-size:13.5px;margin:0;">${esc(sub)}</p></div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" data-close>Cancel</button>
+      <button class="btn" style="background:linear-gradient(180deg,#ff8d9c,#e2526a);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 10px 22px -10px rgba(226,82,106,.5);" id="confirm-yes">Delete</button>
+    </div>`);
+  $('#confirm-yes').addEventListener('click', onConfirm);
+  $$('[data-close]').forEach(b=>b.addEventListener('click', closeModal));
+}
+
+function roomOptionsHTML(selected){
+  return rooms.slice().sort((a,b)=>(a.roomNumber||'').localeCompare(b.roomNumber||'',undefined,{numeric:true}))
+    .map(r=>`<option value="${r.id}" ${r.id===selected?'selected':''}>${esc(r.roomNumber)} (${occupantsCount(r.id)}/${r.capacity} occupied)</option>`).join('');
+}
+
+function openRoomModal(room){
+  const isEdit = !!room;
+  openModal(`
+    ${modalHead(isEdit?'Edit room':'Add room', isEdit?'Room details':'New room', 'room')}
+    <div class="modal-body">
+      <div class="grid-2">
+        <div class="field"><label>Room number</label><input id="f-roomNumber" value="${esc(room?.roomNumber||'')}" placeholder="A-101" required/></div>
+        <div class="field"><label>Floor</label><input id="f-floor" value="${esc(room?.floor||'')}" placeholder="1st Floor"/></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Type</label>
+          <select id="f-type">
+            ${['Single','Double','Triple','Dormitory'].map(t=>`<option ${room?.type===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Capacity</label><input id="f-capacity" type="number" min="1" value="${room?.capacity||2}" required/></div>
+      </div>
+      <div class="field"><label>Monthly fee (₹)</label><input id="f-feeAmount" type="number" min="0" value="${room?.feeAmount||''}" placeholder="8000"/></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" data-close>Cancel</button>
+      <button class="btn btn-accent" id="save-room">${isEdit?'Save changes':'Add room'}</button>
+    </div>`);
+  $$('[data-close]').forEach(b=>b.addEventListener('click', closeModal));
+  $('#save-room').addEventListener('click', async ()=>{
+    const payload = {
+      roomNumber: $('#f-roomNumber').value.trim(),
+      floor: $('#f-floor').value.trim(),
+      type: $('#f-type').value,
+      capacity: Number($('#f-capacity').value||1),
+      feeAmount: Number($('#f-feeAmount').value||0)
+    };
+    if(!payload.roomNumber){ toast('Room number is required', true); return; }
+    try{
+      if(isEdit) await updateDoc(doc(db,'rooms',room.id), payload);
+      else await addDoc(collection(db,'rooms'), payload);
+      toast(isEdit?'Room updated':'Room added'); closeModal();
+    }catch(err){ toast(err.message, true); }
+  });
+}
+$('#add-room-btn').addEventListener('click', ()=>openRoomModal(null));
+
+function openStudentModal(student){
+  const isEdit = !!student;
+  const hasLogin = !!student?.hasLogin;
+  openModal(`
+    ${modalHead(isEdit?'Edit student':'Add student', isEdit?'Student details':'New student', 'student')}
+    <div class="modal-body">
+      <div class="field"><label>Full name</label><input id="f-name" value="${esc(student?.name||'')}" placeholder="Aditi Sharma" required/></div>
+      <div class="grid-2">
+        <div class="field"><label>Phone</label><input id="f-phone" value="${esc(student?.phone||'')}" placeholder="98765 43210"/></div>
+        <div class="field"><label>Email${hasLogin?' (login email — locked)':''}</label><input id="f-email" type="email" value="${esc(student?.email||'')}" placeholder="optional" ${hasLogin?'readonly style="background:var(--surface-2);color:var(--ink-soft);"':''}/></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Room</label><select id="f-roomId"><option value="">Unassigned</option>${roomOptionsHTML(student?.roomId)}</select></div>
+        <div class="field"><label>Admission date</label><input id="f-admissionDate" type="date" value="${student?.admissionDate||todayISO()}"/></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Guardian name</label><input id="f-guardianName" value="${esc(student?.guardianName||'')}"/></div>
+        <div class="field"><label>Guardian phone</label><input id="f-guardianPhone" value="${esc(student?.guardianPhone||'')}"/></div>
+      </div>
+      <div class="field"><label>Status</label>
+        <select id="f-status">
+          <option value="active" ${student?.status==='active'||!student?'selected':''}>Active</option>
+          <option value="inactive" ${student?.status==='inactive'?'selected':''}>Inactive</option>
+        </select>
+      </div>
+
+      ${hasLogin ? `
+        <div class="field" style="margin-top:4px;padding-top:14px;border-top:1px dashed var(--line);">
+          <label style="margin-bottom:2px;">Portal access</label>
+          <p style="font-size:12.5px;color:var(--ink-soft);margin:2px 0 0;">This student can already sign in with <strong style="color:var(--ink);">${esc(student.email)}</strong>. To change their password, use the Firebase Console → Authentication → Users.</p>
+        </div>
+      ` : `
+        <div class="field" style="margin-top:4px;padding-top:14px;border-top:1px dashed var(--line);">
+          <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-family:'Space Grotesk',sans-serif;letter-spacing:0;font-size:13.5px;color:var(--ink);">
+            <input type="checkbox" id="f-enable-login" style="width:15px;height:15px;"/> Give this student portal access
+          </label>
+        </div>
+        <div id="login-fields" style="display:none;">
+          <div class="grid-2">
+            <div class="field"><label>Login email</label><input id="f-login-email" type="email" placeholder="student@email.com"/></div>
+            <div class="field"><label>Set password</label><input id="f-login-password" type="password" placeholder="Min 6 characters"/></div>
+          </div>
+          <p style="font-size:12px;color:var(--ink-soft);margin:-6px 0 4px;">They'll use this email + password to sign in and see only their own room, fees and complaints.</p>
+        </div>
+      `}
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" data-close>Cancel</button>
+      <button class="btn btn-accent" id="save-student">${isEdit?'Save changes':'Add student'}</button>
+    </div>`);
+  $$('[data-close]').forEach(b=>b.addEventListener('click', closeModal));
+  const loginToggle = $('#f-enable-login');
+  if(loginToggle){
+    loginToggle.addEventListener('change', ()=>{
+      $('#login-fields').style.display = loginToggle.checked ? 'block' : 'none';
+    });
+  }
+  $('#save-student').addEventListener('click', async ()=>{
+    const payload = {
+      name: $('#f-name').value.trim(),
+      phone: $('#f-phone').value.trim(),
+      email: $('#f-email').value.trim(),
+      roomId: $('#f-roomId').value || null,
+      admissionDate: $('#f-admissionDate').value,
+      guardianName: $('#f-guardianName').value.trim(),
+      guardianPhone: $('#f-guardianPhone').value.trim(),
+      status: $('#f-status').value
+    };
+    if(!payload.name){ toast('Name is required', true); return; }
+    const room = rooms.find(r=>r.id===payload.roomId);
+    if(room && !isEdit){
+      const occ = occupantsCount(room.id);
+      if(occ >= Number(room.capacity||0)){ toast('Selected room is already full', true); return; }
+    }
+    const wantsLogin = !isEdit && loginToggle && loginToggle.checked;
+    const saveBtn = $('#save-student');
+    if(wantsLogin){
+      const loginEmail = $('#f-login-email').value.trim();
+      const loginPassword = $('#f-login-password').value;
+      if(!loginEmail || loginPassword.length < 6){ toast('Enter a login email and a password of at least 6 characters', true); return; }
+      saveBtn.textContent = 'Creating account…'; saveBtn.disabled = true;
+      try{
+        const uid = await createStudentAuthAccount(loginEmail, loginPassword);
+        payload.hasLogin = true; payload.email = loginEmail;
+        await setDoc(doc(db,'students', uid), payload);
+        toast('Student added with portal access'); closeModal();
+      }catch(err){
+        toast(friendlyAuthError(err.code) !== 'Sign-in failed. Check your connection and try again.' ? friendlyAuthError(err.code) : err.message, true);
+        saveBtn.textContent = 'Add student'; saveBtn.disabled = false;
+      }
+      return;
+    }
+    try{
+      if(isEdit) await updateDoc(doc(db,'students',student.id), payload);
+      else await addDoc(collection(db,'students'), payload);
+      toast(isEdit?'Student updated':'Student added'); closeModal();
+    }catch(err){ toast(err.message, true); }
+  });
+}
+$('#add-student-btn').addEventListener('click', ()=>openStudentModal(null));
+
+function studentOptionsHTML(){
+  return students.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''))
+    .map(s=>`<option value="${s.id}">${esc(s.name)} — ${esc(roomLabel(s.roomId))}</option>`).join('');
+}
+function openFeeModal(){
+  if(!students.length){ toast('Add a student before creating an invoice', true); return; }
+  openModal(`
+    ${modalHead('Add invoice', 'New fee record', 'fee')}
+    <div class="modal-body">
+      <div class="field"><label>Student</label><select id="f-studentId">${studentOptionsHTML()}</select></div>
+      <div class="grid-2">
+        <div class="field"><label>Month</label><input id="f-month" placeholder="July 2026" value="${new Date().toLocaleString('en-IN',{month:'long',year:'numeric'})}"/></div>
+        <div class="field"><label>Amount (₹)</label><input id="f-amount" type="number" min="0" placeholder="8000"/></div>
+      </div>
+      <div class="field"><label>Due date</label><input id="f-dueDate" type="date" value="${todayISO()}"/></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" data-close>Cancel</button>
+      <button class="btn btn-accent" id="save-fee">Add invoice</button>
+    </div>`);
+  $$('[data-close]').forEach(b=>b.addEventListener('click', closeModal));
+  $('#save-fee').addEventListener('click', async ()=>{
+    const payload = {
+      studentId: $('#f-studentId').value,
+      month: $('#f-month').value.trim(),
+      amount: Number($('#f-amount').value||0),
+      dueDate: $('#f-dueDate').value,
+      status: 'pending', paidDate: null
+    };
+    if(!payload.studentId || !payload.amount){ toast('Student and amount are required', true); return; }
+    try{ await addDoc(collection(db,'fees'), payload); toast('Invoice added'); closeModal(); }
+    catch(err){ toast(err.message, true); }
+  });
+}
+$('#add-fee-btn').addEventListener('click', openFeeModal);
+
+function openComplaintModal(){
+  if(!students.length){ toast('Add a student before logging a complaint', true); return; }
+  openModal(`
+    ${modalHead('Log complaint', 'New complaint', 'complaint')}
+    <div class="modal-body">
+      <div class="field"><label>Student</label><select id="f-studentId2">${studentOptionsHTML()}</select></div>
+      <div class="field"><label>Category</label>
+        <select id="f-category">
+          ${['Electrical','Plumbing','Furniture','Cleanliness','Internet/Wi-Fi','Noise','Other'].map(c=>`<option>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Description</label><textarea id="f-description" placeholder="What's the issue?"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" data-close>Cancel</button>
+      <button class="btn btn-accent" id="save-complaint">Log complaint</button>
+    </div>`);
+  $$('[data-close]').forEach(b=>b.addEventListener('click', closeModal));
+  $('#save-complaint').addEventListener('click', async ()=>{
+    const studentId = $('#f-studentId2').value;
+    const student = students.find(s=>s.id===studentId);
+    const payload = {
+      studentId, roomId: student?.roomId || null,
+      category: $('#f-category').value,
+      description: $('#f-description').value.trim(),
+      status: 'open', createdAt: todayISO(), resolvedAt: null
+    };
+    try{ await addDoc(collection(db,'complaints'), payload); toast('Complaint logged'); closeModal(); }
+    catch(err){ toast(err.message, true); }
+  });
+}
+$('#add-complaint-btn').addEventListener('click', openComplaintModal);
+
+/* ---------------- flourish ---------------- */
+document.querySelectorAll('.axis-mark').forEach(m=>{
+  m.addEventListener('mouseenter', ()=>{ m.classList.remove('spin'); void m.offsetWidth; m.classList.add('spin'); });
+});
+</script>
+</body>
+</html>
